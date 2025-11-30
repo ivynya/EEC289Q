@@ -1,8 +1,10 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
+	"runtime"
 	"strconv"
 	"time"
 
@@ -84,8 +86,16 @@ func main() {
 		log.Info().Msgf("Execution time: %s", elapsed)
 	}()
 
+	// get flags from input
+	cpuFlag := flag.Int("cpu", -1, "Max CPU to use (default=-1 : all)")
+	timeFlag := flag.Int("time", 59, "Time limit in seconds (default=59)")
+	flag.Parse()
+	if *cpuFlag <= 0 {
+		*cpuFlag = runtime.NumCPU()
+	}
+
 	// read input file name to graph struct
-	inputFile := os.Args[1]
+	inputFile := flag.Args()[0]
 	graph, err := loadGraph(inputFile)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to load graph from file")
@@ -95,4 +105,9 @@ func main() {
 	// print summary of loaded graph
 	ms_loaded := time.Since(startTime).Milliseconds()
 	log.Info().Msgf("Loaded %d nodes / %d edges in %dms", graph.NodeCount(), graph.EdgeCount(), ms_loaded)
+
+	// solve TSP and print result
+	log.Info().Msgf("Using %d CPUs and %d seconds time limit", *cpuFlag, *timeFlag)
+	path, dist, cycles := tsp_solver.SolveTSP(graph, *cpuFlag, *timeFlag)
+	log.Info().Msgf("Best path found with cost %.4f (visited %d cycles): %v", dist, cycles, path)
 }
