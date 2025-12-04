@@ -72,7 +72,7 @@ func loadGraph(inputFile string) (*tsp_solver.Graph, error) {
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: solver <input_file>")
+		fmt.Println("Usage: solver --time=59 --cpu=-1 --output=<output_file> <input_file>")
 		return
 	}
 
@@ -89,6 +89,7 @@ func main() {
 	// get flags from input
 	cpuFlag := flag.Int("cpu", -1, "Max CPU to use (default=-1 : all)")
 	timeFlag := flag.Int("time", 59, "Time limit in seconds (default=59)")
+	outputFlag := flag.String("output", "output.txt", "Output file name (default=output.txt)")
 	flag.Parse()
 	if *cpuFlag <= 0 {
 		*cpuFlag = runtime.NumCPU()
@@ -109,5 +110,24 @@ func main() {
 	// solve TSP and print result
 	log.Info().Msgf("Using %d CPUs and %d seconds time limit", *cpuFlag, *timeFlag)
 	path, dist, cycles := tsp_solver.SolveTSP(graph, *cpuFlag, *timeFlag)
-	log.Info().Msgf("Best path found with cost %.4f (visited %d cycles): %v", dist, cycles, path)
+	log.Info().Msgf("Best path found with cost %.4f (visited %d cycles): %v...", dist, cycles, path[:5])
+
+	f, err := os.OpenFile(*outputFlag, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Err")
+		return
+	}
+	defer f.Close()
+	for i, node := range path {
+		fmtString := "%d"
+		if i < len(path)-1 {
+			fmtString = "%d, "
+		}
+
+		if _, err = fmt.Fprintf(f, fmtString, node); err != nil {
+			log.Fatal().Err(err).Msg("Err")
+			return
+		}
+	}
+	log.Info().Msgf("Output written to %s", *outputFlag)
 }
